@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Face Recognition</title>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0%;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    canvas {
+      position: absolute;
+      left: 0;
+    }
+  </style>
+
+</head>
+
+<body>
+  <h1>Face Recognition:</h1>
+  <p>It is used to detect a particular person in a group image or a disguised person's identity. It can be very useful
+    while finding a victim. </p>
+  <p>Note : You should register your pic for AI to detect your face.</p>
+  <input type="file" id="imageUpload">
+
+
+  <script src="./api"></script>
+  <script>
+
+
+    const imageUpload = document.getElementById('imageUpload')
+
+    Promise.all([
+      faceapi.nets.faceRecognitionNet.loadFromUri('./media/model'),
+      faceapi.nets.faceLandmark68Net.loadFromUri('./media/model'),
+      faceapi.nets.ssdMobilenetv1.loadFromUri('./media/model')
+    ]).then(start)
+
+    async function start() {
+      const container = document.createElement('div')
+      container.style.position = 'relative'
+      document.body.append(container)
+      const labeledFaceDescriptors = await loadLabeledImages()
+      const faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.6)
+      let image
+      let canvas
+      document.body.append('Loaded')
+      imageUpload.addEventListener('change', async () => {
+        if (image) image.remove()
+        if (canvas) canvas.remove()
+        image = await faceapi.bufferToImage(imageUpload.files[0])
+        container.append(image)
+        canvas = faceapi.createCanvasFromMedia(image)
+        container.append(canvas)
+        const displaySize = { width: image.width, height: image.height }
+        faceapi.matchDimensions(canvas, displaySize)
+        const detections = await faceapi.detectAllFaces(image).withFaceLandmarks().withFaceDescriptors()
+        const resizedDetections = faceapi.resizeResults(detections, displaySize)
+        const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor))
+        results.forEach((result, i) => {
+          const box = resizedDetections[i].detection.box
+          const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() })
+          drawBox.draw(canvas)
+        })
+      })
+    }
+
+    function loadLabeledImages() {
+      const labels = ['Black Widow', 'Captain America', 'Captain Marvel', 'Hawkeye', 'Jim Rhodes', 'Thor', 'Tony Stark']
+      return Promise.all(
+        labels.map(async label => {
+          const descriptions = []
+          for (let i = 1; i <= 2; i++) {
+            const img = await faceapi.fetchImage(`./media/students/${label}/${i}.jpg`)
+            const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor()
+            descriptions.push(detections.descriptor)
+          }
+
+          return new faceapi.LabeledFaceDescriptors(label, descriptions)
+        })
+      )
+    }
+
+
+  </script>
+</body>
+
+</html>

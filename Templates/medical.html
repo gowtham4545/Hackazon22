@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Lato:wght@300&display=swap');
+
+        /* font-family: 'Raleway', sans-serif;
+        font-family: 'Lato', sans-serif; */
+
+        body {
+            margin: 0px;
+            padding: 0px;
+            width: 100vw;
+            height: 100vh;
+            background-color: aliceblue;
+        }
+
+
+        canvas {
+            position: absolute;
+            top: 50px;
+            left: 300px;
+            /* width: 850px;
+                height: 900px; */
+
+            /* left: 0px; */
+        }
+
+        video {
+            margin-left: 300px;
+            margin-top: 50px;
+        }
+
+        h1 {
+
+            font-family: 'Raleway', sans-serif;
+            margin-left: 30px;
+
+        }
+    </style>
+
+</head>
+
+<body>
+
+
+    <video id="video" src="" width="720" height="560" autoplay muted></video>
+
+    <h1> Human Emotion Detector :</h1>
+    <p style="padding: 0 30px;"> AI Emotion detector helps us to understand a persons emotion who cannot express himself
+        what he is goinng through , it plays an important role in the
+        medical field where the doctor can know if a "Mentally defected" person or a "Emotionally weak " person who
+        cannot express himself is happy or depressed . </p>
+
+    <script src="./api"></script>
+
+</body>
+
+</html>
+
+<script>
+
+    const video = document.getElementById("video")
+
+    Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri('./media/models'),
+        faceapi.nets.faceLandmark68Net.loadFromUri('./media/models'),
+        faceapi.nets.faceRecognitionNet.loadFromUri('./media/models'),
+        faceapi.nets.faceExpressionNet.loadFromUri('./media/models')
+    ]).then(startVideo)
+
+    function startVideo() {
+        navigator.getUserMedia(
+            { video: {} },
+            stream => video.srcObject = stream,
+            err => console.error(err)
+        )
+    }
+
+    video.addEventListener('play', () => {
+        const canvas = faceapi.createCanvasFromMedia(video)
+        document.body.append(canvas)
+        const displaySize = { width: video.width, height: video.height }
+        faceapi.matchDimensions(canvas, displaySize)
+        console.log("red")
+        setInterval(async () => {
+            const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions()
+            // console.log(detections) 
+            const resizedDetections = faceapi.resizeResults(detections, displaySize)
+            canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height)
+            faceapi.draw.drawDetections(canvas, resizedDetections)
+            faceapi.draw.drawFaceLandmarks(canvas, resizedDetections)
+            faceapi.draw.drawFaceExpressions(canvas, resizedDetections)
+        }, 100)
+    })
+
+</script>
