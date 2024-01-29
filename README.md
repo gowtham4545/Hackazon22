@@ -1,4 +1,4 @@
-# Hackazon22
+# Vision.IO
  
 #### A website that uses ML-algorithms to detect the facial patterns of a person and detect the identity and facial emotion of the person. The tech-stack includes html, css, js and django
 
